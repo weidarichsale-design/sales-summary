@@ -661,8 +661,16 @@ document.getElementById('saveImageBtn').addEventListener('click', function(){
   btn.disabled = true;
   showSaveStatus('กำลังประมวลผล...', true);
 
+  // เพิ่ม padding ชั่วคราวรอบเนื้อหา กันภาพที่ export ออกมาชิดขอบเกินไป
+  const originalPadding = target.style.padding;
+  const originalBackground = target.style.background;
+  target.style.padding = '24px 16px';
+  target.style.background = '#f6f4ef';
+
   html2canvas(target, {backgroundColor:'#f6f4ef', scale:2, useCORS:true, logging:false})
     .then(canvas => {
+      target.style.padding = originalPadding;
+      target.style.background = originalBackground;
       if(canvas.width === 0 || canvas.height === 0){
         throw new Error('รูปภาพที่ได้มีขนาด 0 พิกเซล');
       }
@@ -678,6 +686,8 @@ document.getElementById('saveImageBtn').addEventListener('click', function(){
       showSaveStatus('✅ บันทึกรูปภาพแล้ว (เช็คโฟลเดอร์ดาวน์โหลด หรือ Photos บน iPhone)', true);
     })
     .catch(err => {
+      target.style.padding = originalPadding;
+      target.style.background = originalBackground;
       showSaveStatus('❌ บันทึกรูปภาพไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)) + ' — ลองใช้ปุ่ม "พิมพ์ / บันทึกเป็น PDF" ด้านล่างแทน', false);
       document.getElementById('printFallbackBtn').style.display = 'block';
       btn.textContent = '💾 บันทึกผลลัพธ์เป็นรูปภาพ';
