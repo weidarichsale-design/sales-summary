@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>สรุปยอดรายรับ SMT</title>
+<style>
+  :root{
+    --ink:#1c1f26;
+    --paper:#f6f4ef;
+    --card:#ffffff;
+    --line:#e2ded3;
+    --accent:#2f6f5e;
+    --accent-soft:#e4f1ec;
+    --warn:#b3452e;
+    --warn-soft:#fbe9e4;
+    --muted:#6b6d72;
+    --mono: "SF Mono", "Consolas", monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,"Segoe UI","Noto Sans Thai",Helvetica,Arial,sans-serif;
+    line-height:1.5;
+    padding-bottom:60px;
+  }
+  header{
+    background:var(--ink);
+    color:var(--paper);
+    padding:20px 16px 22px;
+    position:relative;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:1.3rem;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  header .sub{
+    font-size:.82rem;
+    color:#c8c5bb;
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:0 14px;}
+  .upload-zone{
+    margin-top:-14px;
+    background:var(--card);
+    border-radius:14px;
+    box-shadow:0 6px 20px rgba(0,0,0,.08);
+    padding:16px;
+  }
+  .file-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .file-btn{
+    flex:1;
+    min-width:140px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:12px 14px;
+    font-size:.92rem;
+    font-weight:600;
+    cursor:pointer;
+    text-align:center;
+  }
+  .file-btn.secondary{
+    background:transparent;
+    color:var(--accent);
+    border:1.5px solid var(--accent);
+  }
+  input[type=file]{display:none;}
+  .filename{
+    font-size:.78rem;
+    color:var(--muted);
+    margin-top:8px;
+    word-break:break-all;
+  }
+  .status{
+    margin-top:10px;
+    font-size:.82rem;
+    padding:8px 10px;
+    border-radius:8px;
+    display:none;
+  }
+  .status.show{display:block;}
+  .status.ok{background:var(--accent-soft);color:var(--accent);}
+  .status.err{background:var(--warn-soft);color:var(--warn);}
+
+  .missing-branch-box{
+    margin-top:12px;
+    background:var(--warn-soft);
+    border:1px solid #eecfc4;
+    border-radius:10px;
+    padding:12px;
+    padding-right:36px;
+    position:relative;
+    display:none;
+  }
+  .missing-branch-box.show{display:block;}
+  .missing-branch-box .mbb-close{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:26px;
+    height:26px;
+    border:none;
+    background:rgba(179,69,46,.12);
+    color:var(--warn);
+    border-radius:8px;
+    font-size:.85rem;
+    line-height:1;
+    cursor:pointer;
+  }
+  .missing-branch-box h3{
+    margin:0 0 6px;
+    font-size:.9rem;
+    color:var(--warn);
+  }
+  .missing-branch-box p{margin:0 0 8px;font-size:.82rem;color:#5c4238;}
+  .missing-branch-box code{
+    background:#fff;
+    padding:2px 6px;
+    border-radius:4px;
+    font-family:var(--mono);
+    font-size:.8rem;
+  }
+
+  section.results{margin-top:18px;}
+  .date-banner{
+    text-align:center;
+    font-size:1.05rem;
+    font-weight:700;
+    margin:20px 0 12px;
+    color:var(--ink);
+  }
+  .card{
+    background:var(--card);
+    border-radius:14px;
+    padding:14px 16px;
+    margin-bottom:12px;
+    box-shadow:0 3px 10px rgba(0,0,0,.05);
+    border:1px solid var(--line);
+  }
+  .card h2{
+    font-size:.95rem;
+    margin:0 0 10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+  }
+  .card h2 .tag{
+    font-size:.68rem;
+    font-weight:600;
+    color:var(--muted);
+    background:var(--paper);
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .figures{
+    display:flex;
+    gap:10px;
+  }
+  .figure{
+    flex:1;
+    background:var(--paper);
+    border-radius:10px;
+    padding:10px 12px;
+  }
+  .figure .label{font-size:.72rem;color:var(--muted);margin-bottom:2px;}
+  .figure .value{font-size:1.15rem;font-weight:700;font-family:var(--mono);}
+  .figure .value.income{color:var(--accent);}
+
+  .grand-total{
+    background:var(--ink);
+    color:var(--paper);
+    border-radius:14px;
+    padding:18px 16px;
+    text-align:center;
+    margin:16px 0;
+  }
+  .grand-total .label{font-size:.85rem;color:#c8c5bb;margin-bottom:6px;}
+  .grand-total .value{font-size:2rem;font-weight:800;font-family:var(--mono);}
+  .grand-total .sub{font-size:.75rem;color:#9c9a92;margin-top:4px;}
+
+  .period-section h2.section-title{
+    font-size:1rem;
+    margin:24px 0 10px;
+    padding-bottom:6px;
+    border-bottom:2px solid var(--ink);
+  }
+  .period-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .period-card.current{
+    border-color:var(--accent);
+    background:var(--accent-soft);
+  }
+  .period-card .p-label{font-size:.85rem;font-weight:600;}
+  .period-card .p-sub{font-size:.72rem;color:var(--muted);}
+  .period-card .p-value{
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:1.05rem;
+    color:var(--accent);
+    white-space:nowrap;
+  }
+
+  .empty-state{
+    text-align:center;
+    color:var(--muted);
+    padding:50px 20px;
+    font-size:.9rem;
+  }
+  .empty-state svg{margin-bottom:12px;opacity:.4;}
+
+  details.percent-config{
+    margin-top:12px;
+    font-size:.8rem;
+  }
+  details.percent-config summary{
+    cursor:pointer;
+    color:var(--muted);
+    padding:4px 0;
+  }
+  .percent-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:.78rem;}
+  .percent-table th,.percent-table td{
+    border:1px solid var(--line);
+    padding:5px 8px;
+    text-align:left;
+  }
+  .percent-table th{background:var(--paper);}
+  .save-image-btn{
+    display:block;
+    width:100%;
+    margin:16px 0 8px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:13px;
+    font-size:.9rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .save-image-btn.print-fallback{
+    background:transparent;
+    color:var(--accent);
+    border:1.5px solid var(--accent);
+  }
+  .save-status{
+    font-size:.8rem;
+    padding:8px 10px;
+    border-radius:8px;
+    margin:6px 0;
+    display:none;
+  }
+  .save-status.show{display:block;}
+  .save-status.ok{background:var(--accent-soft);color:var(--accent);}
+  .save-status.err{background:var(--warn-soft);color:var(--warn);}
+  @media print{
+    header, .upload-zone, footer.note, .save-image-btn{display:none !important;}
+    body{background:#fff;}
+    .card, .period-card, .grand-total{break-inside:avoid;}
+  }
+  footer.note{
+    text-align:center;
+    font-size:.72rem;
+    color:var(--muted);
+    padding:20px 16px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>สรุปยอดรายรับ SMT</h1>
+    <div class="sub">อัปโหลดไฟล์ CSV รายการขายเพื่อคำนวณ</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="upload-zone">
+    <div class="file-row">
+      <label class="file-btn" for="csvFile">📄 เลือกไฟล์ CSV ยอดขาย</label>
+      <input type="file" id="csvFile" accept=".csv,text/csv">
+      <label class="file-btn secondary" for="percentFile">⚙️ อัปเดตไฟล์ % สาขา</label>
+      <input type="file" id="percentFile" accept=".csv,text/csv">
+    </div>
+    <div class="filename" id="csvFileName">ยังไม่ได้เลือกไฟล์</div>
+    <div class="status" id="statusBox"></div>
+    <div class="missing-branch-box" id="missingBox">
+      <button class="mbb-close" id="missingBoxClose" aria-label="ปิดการแจ้งเตือน">✕</button>
+      <h3>⚠️ พบสาขาที่ไม่มีข้อมูล % ในระบบ</h3>
+      <p>สาขาต่อไปนี้ไม่พบใน percent list ที่บันทึกไว้ และไม่ใช่ QP/RP/UP หรือรูปแบบรหัสสาขา NCS — ระบบจะจัดเข้ากลุ่ม A เป็นค่าเริ่มต้น หากไม่ถูกต้อง กรุณาอัปโหลดไฟล์ percent list ที่อัปเดตแล้ว:</p>
+      <div id="missingBranchList"></div>
+    </div>
+    <details class="percent-config">
+      <summary>ดู % สาขาที่ใช้อยู่ตอนนี้</summary>
+      <table class="percent-table" id="percentTable"></table>
+    </details>
+  </div>
+
+  <div id="resultsArea">
+    <div class="empty-state">
+      <div>เลือกไฟล์ CSV ยอดขายด้านบนเพื่อเริ่มคำนวณ</div>
+    </div>
+  </div>
+
+  <button class="save-image-btn" id="saveImageBtn" style="display:none;">💾 บันทึกผลลัพธ์เป็นรูปภาพ</button>
+  <div class="save-status" id="saveStatusBox"></div>
+  <button class="save-image-btn print-fallback" id="printFallbackBtn" style="display:none;">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+</div>
+
+<footer class="note">คำนวณจากสูตรราคาและการจัดกลุ่มสาขาตามระบบ SMT · แสดงเฉพาะรายรับ (SMT Price) ไม่ใช่ราคาเต็ม</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+// ===== Price table: [Fullprice, GroupA, NCS, UP/RP/WR-tier, QP/AP-tier] =====
+const PRICE = {
+  PG:[180,130,180,180,150],
+  SG:[150,150,150,150,150],
+  VS:[250,190,250,250,240],
+  NW:[300,240,300,300,300],
+  RF:[350,290,350,350,250],
+  AI1:[150,120,150,150,150],
+  AI2:[300,220,300,300,300],
+  AI3:[600,440,600,600,600],
+  AIP:[3600,3300,3600,3600,3600],
+  TR:[150,0,150,150,150]
+};
+const TYPES = Object.keys(PRICE);
+
+// Default percent list embedded from CS_Weida_PercentList_dont_edit.csv (uploaded 2026-07-08)
+let weidaPercent = {
+  "10X": "30",
+  "AP": "37",
+  "W050": "30",
+  "W051": "30",
+  "W052": "30",
+  "W053": "30",
+  "W054": "30"
+};
+
+const WR_RATE = {"30":0.70, "37":0.63, "45":0.55};
+
+let salesRows = []; // parsed rows from uploaded CSV
+let missingBoxDismissed = false;
+
+function updateMissingBox(rows){
+  const missing = findMissingBranches(rows);
+  const missingBox = document.getElementById('missingBox');
+  if(missing.length > 0 && !missingBoxDismissed){
+    missingBox.classList.add('show');
+    document.getElementById('missingBranchList').innerHTML =
+      missing.map(b => `<code>${b}</code>`).join(' ');
+  } else {
+    missingBox.classList.remove('show');
+  }
+}
+
+function renderPercentTable(){
+  const t = document.getElementById('percentTable');
+  let html = '<tr><th>สาขา</th><th>เปอร์เซ็นต์</th></tr>';
+  for(const [b,p] of Object.entries(weidaPercent)){
+    html += `<tr><td>${b}</td><td>${p}%</td></tr>`;
+  }
+  t.innerHTML = html;
+}
+renderPercentTable();
+
+function showStatus(msg, ok){
+  const box = document.getElementById('statusBox');
+  box.textContent = msg;
+  box.className = 'status show ' + (ok ? 'ok' : 'err');
+}
+
+function isNcsPattern(branch){
+  return /[A-Z]/i.test(branch) && /\d/.test(branch);
+}
+
+function pointerFor(branch){
+  if(branch === "QP") return 8;
+  if(branch === "RP") return 4;
+  if(branch === "UP") return 3;
+  const pct = weidaPercent[branch];
+  if(pct === "30") return 5;
+  if(pct === "37") return 6;
+  if(pct === "45") return 7;
+  if(isNcsPattern(branch)) return 2;
+  return 1;
+}
+
+function parseCsv(text){
+  const lines = text.split(/\r?\n/);
+  const rows = [];
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const f = line.split(',');
+    if(f.length < 5) continue;
+    const dateStr = f[0].trim();
+    const branch = f[2].trim();
+    const pkg = f[4].trim();
+    const status = f.length >= 6 ? f[5].trim() : "";
+    const dParts = dateStr.split('-');
+    if(dParts.length !== 3) continue;
+    rows.push({dateStr, branch, pkg, status, dd:parseInt(dParts[0],10), mm:parseInt(dParts[1],10), yy:parseInt(dParts[2],10)});
+  }
+  return rows;
+}
+
+function findMissingBranches(rows){
+  const missing = new Set();
+  for(const r of rows){
+    if(r.pkg === "FLM" || r.pkg === "PER") continue;
+    if(!(r.pkg in PRICE)) continue;
+    const b = r.branch;
+    if(b === "QP" || b === "RP" || b === "UP") continue;
+    if(b in weidaPercent) continue;
+    if(isNcsPattern(b)) continue;
+    missing.add(b);
+  }
+  return Array.from(missing);
+}
+
+// counts[type] = {1:GroupA count net, 2:NCS, 3:UP, 4:RP, 5:WR30, 6:WR37, 7:WR45, 8:QP}
+function computeCounts(rows){
+  const counts = {};
+  for(const t of TYPES) counts[t] = {1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0};
+  for(const r of rows){
+    if(r.pkg === "FLM" || r.pkg === "PER") continue;
+    if(!(r.pkg in PRICE)) continue;
+    const p = pointerFor(r.branch);
+    const net = (r.status === "") ? 1 : -1;
+    counts[r.pkg][p] += net;
+  }
+  return counts;
+}
+
+function calcGroupA(counts){
+  let total=0, count=0;
+  for(const t of TYPES){ total += PRICE[t][1]*counts[t][1]; count += counts[t][1]; }
+  return {total, count};
+}
+function calcNCS(counts){
+  let total=0, count=0;
+  for(const t of TYPES){
+    const c = counts[t][2] + counts[t][3] + counts[t][8];
+    total += PRICE[t][2]*counts[t][2] + PRICE[t][3]*counts[t][3] + PRICE[t][3]*counts[t][8];
+    count += c;
+  }
+  return {total, count};
+}
+function calcUP(counts){
+  let total=0, count=0;
+  for(const t of TYPES){ total += PRICE[t][3]*counts[t][3]; count += counts[t][3]; }
+  return {total, count};
+}
+function calcQP(counts){
+  let total=0, count=0;
+  for(const t of TYPES){ total += PRICE[t][3]*counts[t][8]; count += counts[t][8]; }
+  return {total, count};
+}
+function calcRP(counts){
+  let total=0, count=0;
+  for(const t of TYPES){ total += PRICE[t][4]*counts[t][4]; count += counts[t][4]; }
+  return {total, count};
+}
+function calcWR(counts){
+  // Weida Rich: tier 30/37/45, revenue = fullprice * count * rate
+  let total=0, count=0;
+  for(const t of TYPES){
+    const c5=counts[t][5], c6=counts[t][6], c7=counts[t][7];
+    total += PRICE[t][0]*c5*WR_RATE["30"] + PRICE[t][0]*c6*WR_RATE["37"] + PRICE[t][0]*c7*WR_RATE["45"];
+    count += c5+c6+c7;
+  }
+  return {total:Math.ceil(total), count};
+}
+
+function fmt(n){
+  return Math.round(n).toLocaleString('en-US');
+}
+
+function dateKeyToLabel(dd,mm,yy){
+  return String(dd).padStart(2,'0') + '/' + String(mm).padStart(2,'0') + '/' + yy;
+}
+
+function renderResults(rows){
+  // find latest date
+  let latest = null;
+  for(const r of rows){
+    const key = r.yy*10000 + r.mm*100 + r.dd;
+    if(latest === null || key > latest.key) latest = {key, dd:r.dd, mm:r.mm, yy:r.yy};
+  }
+  if(!latest){
+    document.getElementById('resultsArea').innerHTML = '<div class="empty-state">ไม่พบข้อมูลวันที่ในไฟล์ CSV — ตรวจสอบรูปแบบไฟล์อีกครั้ง</div>';
+    return;
+  }
+
+  const todayRows = rows.filter(r => r.dd===latest.dd && r.mm===latest.mm && r.yy===latest.yy);
+  const counts = computeCounts(todayRows);
+
+  const ga = calcGroupA(counts);
+  const ncs = calcNCS(counts);
+  const up = calcUP(counts);
+  const qp = calcQP(counts);
+  const rp = calcRP(counts);
+  const wr = calcWR(counts);
+
+  const csTotal = ga.total + ncs.total + up.total + qp.total + rp.total;
+  const csCount = ga.count + ncs.count + up.count + qp.count + rp.count;
+  const grandTotal = csTotal + wr.total;
+  const grandCount = csCount + wr.count;
+
+  // 10-day period grouping, reset each period, split by month
+  const periodMap = {}; // key: "yy-mm-period" -> {total, count, label}
+  for(const r of rows){
+    if(r.pkg === "FLM" || r.pkg === "PER") continue;
+    if(!(r.pkg in PRICE)) continue;
+    let period;
+    if(r.dd <= 10) period = 1;
+    else if(r.dd <= 20) period = 2;
+    else period = 3;
+    const key = `${r.yy}-${String(r.mm).padStart(2,'0')}-P${period}`;
+    if(!periodMap[key]) periodMap[key] = {total:0, count:0, yy:r.yy, mm:r.mm, period};
+  }
+  // recompute totals per period properly using per-row pointer/price (need net status handling)
+  for(const key in periodMap){
+    periodMap[key].total = 0;
+    periodMap[key].count = 0;
+  }
+  for(const r of rows){
+    if(r.pkg === "FLM" || r.pkg === "PER") continue;
+    if(!(r.pkg in PRICE)) continue;
+    let period;
+    if(r.dd <= 10) period = 1;
+    else if(r.dd <= 20) period = 2;
+    else period = 3;
+    const key = `${r.yy}-${String(r.mm).padStart(2,'0')}-P${period}`;
+    const p = pointerFor(r.branch);
+    const net = (r.status === "") ? 1 : -1;
+    let price;
+    if(p===1) price = PRICE[r.pkg][1];
+    else if(p===2) price = PRICE[r.pkg][2];
+    else if(p===3) price = PRICE[r.pkg][3];
+    else if(p===4) price = PRICE[r.pkg][4];
+    else if(p===8) price = PRICE[r.pkg][3];
+    else if(p===5) price = PRICE[r.pkg][0]*WR_RATE["30"];
+    else if(p===6) price = PRICE[r.pkg][0]*WR_RATE["37"];
+    else if(p===7) price = PRICE[r.pkg][0]*WR_RATE["45"];
+    periodMap[key].total += price*net;
+    periodMap[key].count += net;
+  }
+
+  const periodKeys = Object.keys(periodMap).sort();
+  const dateLabel = dateKeyToLabel(latest.dd, latest.mm, latest.yy);
+  const currentPeriod = latest.dd<=10?1:(latest.dd<=20?2:3);
+  const currentPeriodKey = `${latest.yy}-${String(latest.mm).padStart(2,'0')}-P${currentPeriod}`;
+
+  const periodLabels = {1:'วันที่ 1–10', 2:'วันที่ 11–20', 3:'วันที่ 21–30/31'};
+
+  let periodHtml = '';
+  for(const key of periodKeys){
+    const p = periodMap[key];
+    const isCurrent = key === currentPeriodKey;
+    periodHtml += `
+      <div class="period-card ${isCurrent?'current':''}">
+        <div>
+          <div class="p-label">${p.mm}/${p.yy} · ${periodLabels[p.period]}</div>
+          <div class="p-sub">${p.count} รายการ${isCurrent?' · รอบปัจจุบัน':''}</div>
+        </div>
+        <div class="p-value">${fmt(p.total)} ฿</div>
+      </div>`;
+  }
+
+  const html = `
+    <div class="date-banner">📅 สรุปยอดรายรับประจำวันที่ ${dateLabel}</div>
+
+    <div class="card">
+      <h2>กลุ่ม CS <span class="tag">${ga.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ (Group A)</div><div class="value income">${fmt(ga.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>กลุ่ม WR (Weida Rich) <span class="tag">${wr.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ (หลังหักเปอร์เซ็นต์)</div><div class="value income">${fmt(wr.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สาขา RP <span class="tag">${rp.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(rp.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สาขา UP <span class="tag">${up.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(up.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>สาขา QP <span class="tag">${qp.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(qp.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="grand-total">
+      <div class="label">สรุปรวมรายรับวันนี้</div>
+      <div class="value">${fmt(grandTotal)} ฿</div>
+      <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + WR: ${wr.count})</div>
+    </div>
+
+    <div class="period-section">
+      <h2 class="section-title">ยอดขายรวมแยกทุก 10 วัน</h2>
+      ${periodHtml || '<div class="empty-state" style="padding:20px;">ไม่มีข้อมูล</div>'}
+    </div>
+  `;
+
+  document.getElementById('resultsArea').innerHTML = html;
+  document.getElementById('saveImageBtn').style.display = 'block';
+}
+
+function showSaveStatus(msg, ok){
+  const box = document.getElementById('saveStatusBox');
+  box.textContent = msg;
+  box.className = 'save-status show ' + (ok ? 'ok' : 'err');
+}
+
+document.getElementById('saveImageBtn').addEventListener('click', function(){
+  const btn = this;
+  const target = document.getElementById('resultsArea');
+
+  if(typeof html2canvas === 'undefined'){
+    showSaveStatus('⚠️ โหลดตัวช่วยสร้างรูปภาพไม่สำเร็จ (เช็คอินเทอร์เน็ต หรือลองปุ่ม PDF ด้านล่างแทน)', false);
+    document.getElementById('printFallbackBtn').style.display = 'block';
+    return;
+  }
+
+  btn.textContent = '⏳ กำลังสร้างรูปภาพ...';
+  btn.disabled = true;
+  showSaveStatus('กำลังประมวลผล...', true);
+
+  html2canvas(target, {backgroundColor:'#f6f4ef', scale:2, useCORS:true, logging:false})
+    .then(canvas => {
+      if(canvas.width === 0 || canvas.height === 0){
+        throw new Error('รูปภาพที่ได้มีขนาด 0 พิกเซล');
+      }
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'sales_summary_' + Date.now() + '.png';
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      btn.textContent = '💾 บันทึกผลลัพธ์เป็นรูปภาพ';
+      btn.disabled = false;
+      showSaveStatus('✅ บันทึกรูปภาพแล้ว (เช็คโฟลเดอร์ดาวน์โหลด หรือ Photos บน iPhone)', true);
+    })
+    .catch(err => {
+      showSaveStatus('❌ บันทึกรูปภาพไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)) + ' — ลองใช้ปุ่ม "พิมพ์ / บันทึกเป็น PDF" ด้านล่างแทน', false);
+      document.getElementById('printFallbackBtn').style.display = 'block';
+      btn.textContent = '💾 บันทึกผลลัพธ์เป็นรูปภาพ';
+      btn.disabled = false;
+    });
+});
+
+document.getElementById('printFallbackBtn').addEventListener('click', function(){
+  window.print();
+});
+
+document.getElementById('csvFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  document.getElementById('csvFileName').textContent = '📄 ' + file.name;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const rows = parseCsv(ev.target.result);
+      if(rows.length === 0){
+        showStatus('ไม่พบข้อมูลที่อ่านได้ในไฟล์ — ตรวจสอบรูปแบบ CSV', false);
+        return;
+      }
+      missingBoxDismissed = false;
+      updateMissingBox(rows);
+      salesRows = rows;
+      showStatus(`โหลดสำเร็จ: ${rows.length} รายการ`, true);
+      renderResults(rows);
+    }catch(err){
+      showStatus('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, false);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+document.getElementById('percentFile').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const lines = ev.target.result.split(/\r?\n/);
+      const newPercent = {};
+      for(const line of lines){
+        if(!line.trim()) continue;
+        const [b,p] = line.split(',').map(s=>s.trim());
+        if(b && p) newPercent[b] = p;
+      }
+      weidaPercent = newPercent;
+      renderPercentTable();
+      showStatus(`อัปเดต % สาขาแล้ว: ${Object.keys(newPercent).length} สาขา`, true);
+      if(salesRows.length > 0){
+        missingBoxDismissed = false;
+        updateMissingBox(salesRows);
+        renderResults(salesRows);
+      }
+    }catch(err){
+      showStatus('อ่านไฟล์ % สาขาไม่สำเร็จ: ' + err.message, false);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+document.getElementById('missingBoxClose').addEventListener('click', function(){
+  missingBoxDismissed = true;
+  document.getElementById('missingBox').classList.remove('show');
+});
+</script>
+</body>
+</html>
