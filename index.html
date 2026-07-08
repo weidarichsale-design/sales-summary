@@ -480,15 +480,37 @@ function calcRP(counts){
   for(const t of TYPES){ total += PRICE[t][4]*counts[t][4]; count += counts[t][4]; }
   return {total, count};
 }
-function calcWR(counts){
-  // Weida Rich: tier 30/37/45, revenue = fullprice * count * rate
+function calcWRMonth(counts){
+  // Weida Rich Month: tier 30% + 45% (ไม่รวม AP ซึ่งเป็น WR Round แยกต่างหาก)
   let total=0, count=0;
   for(const t of TYPES){
-    const c5=counts[t][5], c6=counts[t][6], c7=counts[t][7];
-    total += PRICE[t][0]*c5*WR_RATE["30"] + PRICE[t][0]*c6*WR_RATE["37"] + PRICE[t][0]*c7*WR_RATE["45"];
-    count += c5+c6+c7;
+    const c5=counts[t][5], c7=counts[t][7];
+    total += PRICE[t][0]*c5*WR_RATE["30"] + PRICE[t][0]*c7*WR_RATE["45"];
+    count += c5+c7;
   }
   return {total:Math.ceil(total), count};
+}
+
+function calcWRRound(counts){
+  // Weida Rich Round: tier 37% (AP เท่านั้น ตาม percent list ปัจจุบัน)
+  let total=0, count=0;
+  for(const t of TYPES){
+    const c6=counts[t][6];
+    total += PRICE[t][0]*c6*WR_RATE["37"];
+    count += c6;
+  }
+  return {total:Math.ceil(total), count};
+}
+
+function formatModifiedTime(file){
+  if(!file.lastModified) return '';
+  const d = new Date(file.lastModified);
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yy = String(d.getFullYear()).slice(-2);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return ` (แก้ไขล่าสุด ${dd}/${mm}/${yy} ${hh}:${mi})`;
 }
 
 function fmt(n){
@@ -519,18 +541,19 @@ function renderResults(rows){
   const up = calcUP(counts);
   const qp = calcQP(counts);
   const rp = calcRP(counts);
-  const wr = calcWR(counts);
+  const wrMonth = calcWRMonth(counts);
+  const wrRound = calcWRRound(counts);
 
-  // CS Summary = Group A + NCS + RP เท่านั้น (ยืนยันจากข้อมูลจริง 08-07-26: 5050 ฿ / 29 หน่วย)
+  // CS Summary = Group A + NCS + RP เท่านั้น (ยืนยันจากข้อมูลจริงหลายวัน)
   const csTotal = ga.total + ncs.total + rp.total;
   const csCount = ga.count + ncs.count + rp.count;
-  // UP เป็นตารางแจงแยก ไม่บวกเข้า Grand Total
-  // Grand Total = CS Summary + QP + WR Month + WR Round(AP) (ยืนยันจากข้อมูลจริง: 6959 ฿ / 41 หน่วย)
-  const grandTotal = csTotal + qp.total + wr.total;
-  const grandCount = csCount + qp.count + wr.count;
+  // UP และ QP เป็นตารางแจงแยก ไม่บวกเข้า Grand Total (ยืนยันจากข้อมูลจริง 03-07-26: 3575 ฿ / 24 หน่วย)
+  const grandTotal = csTotal + wrMonth.total + wrRound.total;
+  const grandCount = csCount + wrMonth.count + wrRound.count;
 
   // 10-day period grouping, reset each period, split by month
-  const periodMap = {}; // key: "yy-mm-period" -> {total, count, label}
+  // ใช้ฟังก์ชันคำนวณเดียวกับการ์ดหลัก (calcGroupA/calcNCS/calcRP/calcQP/calcWR) เพื่อความถูกต้องตรงกัน
+  const periodDayGroups = {}; // key -> { yy, mm, period, days: { dd: [rows] } }
   for(const r of rows){
     if(r.pkg === "FLM" || r.pkg === "PER") continue;
     if(!(r.pkg in PRICE)) continue;
@@ -539,34 +562,28 @@ function renderResults(rows){
     else if(r.dd <= 20) period = 2;
     else period = 3;
     const key = `${r.yy}-${String(r.mm).padStart(2,'0')}-P${period}`;
-    if(!periodMap[key]) periodMap[key] = {total:0, count:0, yy:r.yy, mm:r.mm, period};
+    if(!periodDayGroups[key]) periodDayGroups[key] = {yy:r.yy, mm:r.mm, period, days:{}};
+    if(!periodDayGroups[key].days[r.dd]) periodDayGroups[key].days[r.dd] = [];
+    periodDayGroups[key].days[r.dd].push(r);
   }
-  // recompute totals per period properly using per-row pointer/price (need net status handling)
-  for(const key in periodMap){
-    periodMap[key].total = 0;
-    periodMap[key].count = 0;
-  }
-  for(const r of rows){
-    if(r.pkg === "FLM" || r.pkg === "PER") continue;
-    if(!(r.pkg in PRICE)) continue;
-    let period;
-    if(r.dd <= 10) period = 1;
-    else if(r.dd <= 20) period = 2;
-    else period = 3;
-    const key = `${r.yy}-${String(r.mm).padStart(2,'0')}-P${period}`;
-    const p = pointerFor(r.branch);
-    const net = (r.status === "") ? 1 : -1;
-    let price;
-    if(p===1) price = PRICE[r.pkg][1];
-    else if(p===2) price = PRICE[r.pkg][2];
-    else if(p===3) price = PRICE[r.pkg][3];
-    else if(p===4) price = PRICE[r.pkg][4];
-    else if(p===8) price = PRICE[r.pkg][3];
-    else if(p===5) price = PRICE[r.pkg][0]*WR_RATE["30"];
-    else if(p===6) price = PRICE[r.pkg][0]*WR_RATE["37"];
-    else if(p===7) price = PRICE[r.pkg][0]*WR_RATE["45"];
-    periodMap[key].total += price*net;
-    periodMap[key].count += net;
+
+  // คำนวณ Grand Total แยกทีละวันก่อน (ceil ต่อวัน เหมือนระบบต้นทาง) แล้วค่อยรวมเป็น period
+  // เพื่อให้ตรงกับผลรวมที่ได้จากการบวกยอดรายวันที่ปัดเศษแล้ว ไม่ใช่ปัดเศษทีเดียวหลังรวมทั้ง period
+  const periodMap = {};
+  for(const key in periodDayGroups){
+    const group = periodDayGroups[key];
+    let total = 0, count = 0;
+    for(const dd in group.days){
+      const dayRows = group.days[dd];
+      const dCounts = computeCounts(dayRows);
+      const dGa = calcGroupA(dCounts), dNcs = calcNCS(dCounts), dRp = calcRP(dCounts);
+      const dWrMonth = calcWRMonth(dCounts), dWrRound = calcWRRound(dCounts);
+      const dCsTotal = dGa.total + dNcs.total + dRp.total;
+      const dCsCount = dGa.count + dNcs.count + dRp.count;
+      total += dCsTotal + dWrMonth.total + dWrRound.total;
+      count += dCsCount + dWrMonth.count + dWrRound.count;
+    }
+    periodMap[key] = { total, count, yy: group.yy, mm: group.mm, period: group.period };
   }
 
   const periodKeys = Object.keys(periodMap).sort();
@@ -594,16 +611,23 @@ function renderResults(rows){
     <div class="date-banner">📅 สรุปยอดรายรับประจำวันที่ ${dateLabel}</div>
 
     <div class="card">
-      <h2>กลุ่ม CS <span class="tag">${ga.count} รายการ</span></h2>
+      <h2>กลุ่ม CS <span class="tag">${csCount} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="label">รายรับ (Group A)</div><div class="value income">${fmt(ga.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ (Group A + NCS + RP)</div><div class="value income">${fmt(csTotal)} ฿</div></div>
       </div>
     </div>
 
     <div class="card">
-      <h2>กลุ่ม WR (Weida Rich) <span class="tag">${wr.count} รายการ</span></h2>
+      <h2>กลุ่ม WR Month (Weida Rich) <span class="tag">${wrMonth.count} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="label">รายรับ (หลังหักเปอร์เซ็นต์)</div><div class="value income">${fmt(wr.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ (หลังหักเปอร์เซ็นต์)</div><div class="value income">${fmt(wrMonth.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>กลุ่ม WR Round (AP) <span class="tag">${wrRound.count} รายการ</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ (หลังหักเปอร์เซ็นต์)</div><div class="value income">${fmt(wrRound.total)} ฿</div></div>
       </div>
     </div>
 
@@ -614,23 +638,23 @@ function renderResults(rows){
       </div>
     </div>
 
-    <div class="card">
-      <h2>สาขา QP <span class="tag">${qp.count} รายการ</span></h2>
-      <div class="figures">
-        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(qp.total)} ฿</div></div>
-      </div>
-    </div>
-
     <div class="grand-total">
       <div class="label">สรุปรวมรายรับวันนี้</div>
       <div class="value">${fmt(grandTotal)} ฿</div>
-      <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + QP: ${qp.count} + WR: ${wr.count})</div>
+      <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + WR Month: ${wrMonth.count} + WR Round: ${wrRound.count})</div>
     </div>
 
     <div class="card" style="opacity:.75;">
       <h2>สาขา UP <span class="tag">${up.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
       <div class="figures">
         <div class="figure"><div class="label">รายรับ (อ้างอิง)</div><div class="value income">${fmt(up.total)} ฿</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="opacity:.75;">
+      <h2>สาขา QP <span class="tag">${qp.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ (อ้างอิง)</div><div class="value income">${fmt(qp.total)} ฿</div></div>
       </div>
     </div>
 
@@ -705,7 +729,7 @@ document.getElementById('printFallbackBtn').addEventListener('click', function()
 document.getElementById('csvFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
-  document.getElementById('csvFileName').textContent = '📄 ' + file.name;
+  document.getElementById('csvFileName').textContent = '📄 ' + file.name + formatModifiedTime(file);
   const reader = new FileReader();
   reader.onload = function(ev){
     try{
