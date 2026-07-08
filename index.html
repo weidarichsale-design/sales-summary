@@ -521,10 +521,13 @@ function renderResults(rows){
   const rp = calcRP(counts);
   const wr = calcWR(counts);
 
-  const csTotal = ga.total + ncs.total + up.total + qp.total + rp.total;
-  const csCount = ga.count + ncs.count + up.count + qp.count + rp.count;
-  const grandTotal = csTotal + wr.total;
-  const grandCount = csCount + wr.count;
+  // CS Summary = Group A + NCS + RP เท่านั้น (ยืนยันจากข้อมูลจริง 08-07-26: 5050 ฿ / 29 หน่วย)
+  const csTotal = ga.total + ncs.total + rp.total;
+  const csCount = ga.count + ncs.count + rp.count;
+  // UP เป็นตารางแจงแยก ไม่บวกเข้า Grand Total
+  // Grand Total = CS Summary + QP + WR Month + WR Round(AP) (ยืนยันจากข้อมูลจริง: 6959 ฿ / 41 หน่วย)
+  const grandTotal = csTotal + qp.total + wr.total;
+  const grandCount = csCount + qp.count + wr.count;
 
   // 10-day period grouping, reset each period, split by month
   const periodMap = {}; // key: "yy-mm-period" -> {total, count, label}
@@ -593,42 +596,42 @@ function renderResults(rows){
     <div class="card">
       <h2>กลุ่ม CS <span class="tag">${ga.count} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="value income">${fmt(ga.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ (Group A)</div><div class="value income">${fmt(ga.total)} ฿</div></div>
       </div>
     </div>
 
     <div class="card">
       <h2>กลุ่ม WR (Weida Rich) <span class="tag">${wr.count} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="value income">${fmt(wr.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ (หลังหักเปอร์เซ็นต์)</div><div class="value income">${fmt(wr.total)} ฿</div></div>
       </div>
     </div>
 
     <div class="card">
       <h2>สาขา RP <span class="tag">${rp.count} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="value income">${fmt(rp.total)} ฿</div></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>สาขา UP <span class="tag">${up.count} รายการ</span></h2>
-      <div class="figures">
-        <div class="figure"><div class="value income">${fmt(up.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(rp.total)} ฿</div></div>
       </div>
     </div>
 
     <div class="card">
       <h2>สาขา QP <span class="tag">${qp.count} รายการ</span></h2>
       <div class="figures">
-        <div class="figure"><div class="value income">${fmt(qp.total)} ฿</div></div>
+        <div class="figure"><div class="label">รายรับ</div><div class="value income">${fmt(qp.total)} ฿</div></div>
       </div>
     </div>
 
     <div class="grand-total">
       <div class="label">สรุปรวมรายรับวันนี้</div>
       <div class="value">${fmt(grandTotal)} ฿</div>
-      <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + WR: ${wr.count})</div>
+      <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + QP: ${qp.count} + WR: ${wr.count})</div>
+    </div>
+
+    <div class="card" style="opacity:.75;">
+      <h2>สาขา UP <span class="tag">${up.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
+      <div class="figures">
+        <div class="figure"><div class="label">รายรับ (อ้างอิง)</div><div class="value income">${fmt(up.total)} ฿</div></div>
+      </div>
     </div>
 
     <div class="period-section">
