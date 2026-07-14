@@ -302,6 +302,10 @@
       <input type="file" id="percentFile" accept=".csv,text/csv">
     </div>
     <div class="filename" id="csvFileName">ยังไม่ได้เลือกไฟล์</div>
+      <div class="date-select-row" id="dateSelectRow" style="display:none;margin-top:10px;">
+        <label for="dateSelect" style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px;">เลือกวันที่ดูสรุปยอด</label>
+        <select id="dateSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);font-size:.9rem;"></select>
+      </div>
     <div class="status" id="statusBox"></div>
     <div class="missing-branch-box" id="missingBox">
       <button class="mbb-close" id="missingBoxClose" aria-label="ปิดการแจ้งเตือน">✕</button>
@@ -521,19 +525,48 @@ function dateKeyToLabel(dd,mm,yy){
   return String(dd).padStart(2,'0') + '/' + String(mm).padStart(2,'0') + '/' + yy;
 }
 
-function renderResults(rows){
-  // find latest date
-  let latest = null;
+function getUniqueDatesSorted(rows){
+  const map = new Map();
   for(const r of rows){
     const key = r.yy*10000 + r.mm*100 + r.dd;
-    if(latest === null || key > latest.key) latest = {key, dd:r.dd, mm:r.mm, yy:r.yy};
+    if(!map.has(key)) map.set(key, {dd:r.dd, mm:r.mm, yy:r.yy});
   }
-  if(!latest){
+  return Array.from(map.entries()).sort((a,b)=>b[0]-a[0]); // newest first
+}
+
+function populateDateSelect(rows, selectedKey){
+  const sel = document.getElementById('dateSelect');
+  const row = document.getElementById('dateSelectRow');
+  const dates = getUniqueDatesSorted(rows);
+  if(dates.length === 0){ row.style.display='none'; return; }
+  sel.innerHTML = dates.map(([key, d]) =>
+    `<option value="${key}">${dateKeyToLabel(d.dd,d.mm,d.yy)}</option>`
+  ).join('');
+  sel.value = String(selectedKey);
+  row.style.display = 'block';
+}
+
+function renderResults(rows, selectedKey){
+  // find target date: use selectedKey if given & present in rows, else fall back to latest date
+  let target = null;
+  if(selectedKey !== undefined && selectedKey !== null){
+    for(const r of rows){
+      const key = r.yy*10000 + r.mm*100 + r.dd;
+      if(key === selectedKey){ target = {key, dd:r.dd, mm:r.mm, yy:r.yy}; break; }
+    }
+  }
+  if(!target){
+    for(const r of rows){
+      const key = r.yy*10000 + r.mm*100 + r.dd;
+      if(target === null || key > target.key) target = {key, dd:r.dd, mm:r.mm, yy:r.yy};
+    }
+  }
+  if(!target){
     document.getElementById('resultsArea').innerHTML = '<div class="empty-state">ไม่พบข้อมูลวันที่ในไฟล์ CSV — ตรวจสอบรูปแบบไฟล์อีกครั้ง</div>';
     return;
   }
 
-  const todayRows = rows.filter(r => r.dd===latest.dd && r.mm===latest.mm && r.yy===latest.yy);
+  const todayRows = rows.filter(r => r.dd===target.dd && r.mm===target.mm && r.yy===target.yy);
   const counts = computeCounts(todayRows);
 
   const ga = calcGroupA(counts);
@@ -587,9 +620,9 @@ function renderResults(rows){
   }
 
   const periodKeys = Object.keys(periodMap).sort();
-  const dateLabel = dateKeyToLabel(latest.dd, latest.mm, latest.yy);
-  const currentPeriod = latest.dd<=10?1:(latest.dd<=20?2:3);
-  const currentPeriodKey = `${latest.yy}-${String(latest.mm).padStart(2,'0')}-P${currentPeriod}`;
+  const dateLabel = dateKeyToLabel(target.dd, target.mm, target.yy);
+  const currentPeriod = target.dd<=10?1:(target.dd<=20?2:3);
+  const currentPeriodKey = `${target.yy}-${String(target.mm).padStart(2,'0')}-P${currentPeriod}`;
 
   const periodLabels = {1:'วันที่ 1–10', 2:'วันที่ 11–20', 3:'วันที่ 21–30/31'};
 
@@ -742,7 +775,10 @@ document.getElementById('csvFile').addEventListener('change', function(e){
       updateMissingBox(rows);
       salesRows = rows;
       showStatus(`โหลดสำเร็จ: ${rows.length} รายการ`, true);
-      renderResults(rows);
+      const dates = getUniqueDatesSorted(rows);
+      const latestKey = dates.length ? dates[0][0] : null;
+      populateDateSelect(rows, latestKey);
+      renderResults(rows, latestKey);
     }catch(err){
       showStatus('เกิดข้อผิดพลาดในการอ่านไฟล์: ' + err.message, false);
     }
@@ -769,7 +805,9 @@ document.getElementById('percentFile').addEventListener('change', function(e){
       if(salesRows.length > 0){
         missingBoxDismissed = false;
         updateMissingBox(salesRows);
-        renderResults(salesRows);
+        const sel = document.getElementById('dateSelect');
+        const curKey = sel && sel.value ? parseInt(sel.value,10) : null;
+        renderResults(salesRows, curKey);
       }
     }catch(err){
       showStatus('อ่านไฟล์ % สาขาไม่สำเร็จ: ' + err.message, false);
@@ -781,6 +819,10 @@ document.getElementById('percentFile').addEventListener('change', function(e){
 document.getElementById('missingBoxClose').addEventListener('click', function(){
   missingBoxDismissed = true;
   document.getElementById('missingBox').classList.remove('show');
+});
+
+document.getElementById('dateSelect').addEventListener('change', function(){
+  renderResults(salesRows, parseInt(this.value, 10));
 });
 </script>
 </body>
