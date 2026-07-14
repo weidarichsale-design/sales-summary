@@ -646,49 +646,49 @@ function renderResults(rows, selectedKey){
   const html = `
     <div class="date-banner">📅 สรุปยอดรายรับประจำวันที่ ${dateLabel}</div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม CS <span class="tag">${csCount} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(csTotal)} ฿</div></div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom: 0.3rem">
       <h2>สาขา RP <span class="tag">${rp.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(rp.total)} ฿</div></div>
       </div>
     </div>
 
-    <div class="card" style="opacity:.75;">
+    <div class="card" style="opacity:.65;margin-bottom: 0.3rem">
       <h2>สาขา UP <span class="tag">${up.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
       <div class="figures">
-        <div class="figure"><div class="label">รายรับ (อ้างอิง)</div><div class="value income">${fmt(up.total)} ฿</div></div>
+        <div class="figure"><div class="value income">${fmt(up.total)} ฿</div></div>
       </div>
     </div>
 
-    <div class="card" style="opacity:.75;">
+    <div class="card" style="opacity:.65;margin-bottom: 0.3rem">
       <h2>สาขา QP <span class="tag">${qp.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
       <div class="figures">
-        <div class="figure"><div class="label">รายรับ (อ้างอิง)</div><div class="value income">${fmt(qp.total)} ฿</div></div>
+        <div class="figure"><div class="value income">${fmt(qp.total)} ฿</div></div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม WR Round (AP) <span class="tag">${wrRound.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(wrRound.total)} ฿</div></div>
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม WR Month (Weida Rich) <span class="tag">${wrMonth.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(wrMonth.total)} ฿</div></div>
       </div>
     </div>
 
-    <div class="grand-total">
+    <div class="grand-total" style="padding:0.4rem">
       <div class="label">สรุปรวมรายรับวันนี้</div>
       <div class="value">${fmt(grandTotal)} ฿</div>
       <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + WR Month: ${wrMonth.count} + WR Round: ${wrRound.count})</div>
