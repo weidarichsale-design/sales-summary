@@ -586,10 +586,13 @@ function renderResults(rows, selectedKey){
 
   // 10-day period grouping, reset each period, split by month
   // ใช้ฟังก์ชันคำนวณเดียวกับการ์ดหลัก (calcGroupA/calcNCS/calcRP/calcQP/calcWR) เพื่อความถูกต้องตรงกัน
+  // นับเฉพาะวันที่ <= วันที่เลือก (target) — รอบปัจจุบันจะสะสมถึงวันที่เลือกเท่านั้น ไม่รวมวันในอนาคตของไฟล์
   const periodDayGroups = {}; // key -> { yy, mm, period, days: { dd: [rows] } }
   for(const r of rows){
     if(r.pkg === "FLM" || r.pkg === "PER") continue;
     if(!(r.pkg in PRICE)) continue;
+    const rKey = r.yy*10000 + r.mm*100 + r.dd;
+    if(rKey > target.key) continue;
     let period;
     if(r.dd <= 10) period = 1;
     else if(r.dd <= 20) period = 2;
