@@ -492,7 +492,7 @@ function calcWRMonth(counts){
     total += PRICE[t][0]*c5*WR_RATE["30"] + PRICE[t][0]*c7*WR_RATE["45"];
     count += c5+c7;
   }
-  return {total:Math.ceil(total), count};
+  return {total, count};
 }
 
 function calcWRRound(counts){
@@ -503,7 +503,7 @@ function calcWRRound(counts){
     total += PRICE[t][0]*c6*WR_RATE["37"];
     count += c6;
   }
-  return {total:Math.ceil(total), count};
+  return {total, count};
 }
 
 function formatModifiedTime(file){
