@@ -91,7 +91,33 @@
   .status.show{display:block;}
   .status.ok{background:var(--accent-soft);color:var(--accent);}
   .status.err{background:var(--warn-soft);color:var(--warn);}
-
+  .dropbox-zone{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .dropbox-zone label{
+    font-size:.8rem;
+    color:var(--muted);
+    display:block;
+    margin-bottom:4px;
+  }
+  .dropbox-row{display:flex;gap:8px;}
+  .dropbox-row input[type=text]{
+    flex:1;
+    min-width:0;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    font-size:.85rem;
+    font-family:var(--mono);
+  }
+  .dropbox-row .file-btn{
+    flex:none;
+    width:auto;
+    padding:10px 16px;
+    min-width:0;
+  }
   .missing-branch-box{
     margin-top:12px;
     background:var(--warn-soft);
@@ -130,7 +156,6 @@
     font-family:var(--mono);
     font-size:.8rem;
   }
-
   section.results{margin-top:18px;}
   .date-banner{
     text-align:center;
@@ -175,7 +200,6 @@
   .figure .label{font-size:.72rem;color:var(--muted);margin-bottom:2px;}
   .figure .value{font-size:1.15rem;font-weight:700;font-family:var(--mono);}
   .figure .value.income{color:var(--accent);}
-
   .grand-total{
     background:var(--ink);
     color:var(--paper);
@@ -187,7 +211,6 @@
   .grand-total .label{font-size:.85rem;color:#c8c5bb;margin-bottom:6px;}
   .grand-total .value{font-size:2rem;font-weight:800;font-family:var(--mono);}
   .grand-total .sub{font-size:.75rem;color:#9c9a92;margin-top:4px;}
-
   .period-section h2.section-title{
     font-size:1rem;
     margin:24px 0 10px;
@@ -218,7 +241,6 @@
     color:var(--accent);
     white-space:nowrap;
   }
-
   .empty-state{
     text-align:center;
     color:var(--muted);
@@ -226,7 +248,6 @@
     font-size:.9rem;
   }
   .empty-state svg{margin-bottom:12px;opacity:.4;}
-
   details.percent-config{
     margin-top:12px;
     font-size:.8rem;
@@ -285,14 +306,12 @@
 </style>
 </head>
 <body>
-
 <header>
   <div class="wrap">
     <h1>สรุปยอดรายรับ SMT</h1>
-    <div class="sub">อัปโหลดไฟล์ CSV รายการขายเพื่อคำนวณ</div>
+    <div class="sub">ดึงข้อมูลอัตโนมัติจาก GitHub · หรืออัปโหลดไฟล์ CSV เอง</div>
   </div>
 </header>
-
 <div class="wrap">
   <div class="upload-zone">
     <div class="file-row">
@@ -306,6 +325,15 @@
         <label for="dateSelect" style="font-size:.8rem;color:var(--muted);display:block;margin-bottom:4px;">เลือกวันที่ดูสรุปยอด</label>
         <select id="dateSelect" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);font-size:.9rem;"></select>
       </div>
+
+    <div class="dropbox-zone">
+      <label>🔗 ซิงก์อัตโนมัติ (อัปเดตทุกครั้งที่ร้านเปิด NCS File Check Accountant)</label>
+      <div class="dropbox-row">
+        <div class="filename" id="githubLastLoaded" style="flex:1;margin-top:0;">กำลังโหลดข้อมูลล่าสุด...</div>
+        <button class="file-btn" id="refreshGithubBtn" style="flex:none;width:auto;">🔄 รีเฟรชตอนนี้</button>
+      </div>
+    </div>
+
     <div class="status" id="statusBox"></div>
     <div class="missing-branch-box" id="missingBox">
       <button class="mbb-close" id="missingBoxClose" aria-label="ปิดการแจ้งเตือน">✕</button>
@@ -318,23 +346,19 @@
       <table class="percent-table" id="percentTable"></table>
     </details>
   </div>
-
   <div id="resultsArea">
     <div class="empty-state">
-      <div>เลือกไฟล์ CSV ยอดขายด้านบนเพื่อเริ่มคำนวณ</div>
+      <div>กำลังดึงข้อมูลจาก GitHub อัตโนมัติ... (หรือเลือกไฟล์ CSV เองด้านบน)</div>
     </div>
   </div>
-
   <button class="save-image-btn" id="saveImageBtn" style="display:none;">💾 บันทึกผลลัพธ์เป็นรูปภาพ</button>
   <div class="save-status" id="saveStatusBox"></div>
   <button class="save-image-btn print-fallback" id="printFallbackBtn" style="display:none;">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
 </div>
-
 <footer class="note">คำนวณจากสูตรราคาและการจัดกลุ่มสาขาตามระบบ SMT · แสดงเฉพาะรายรับ (SMT Price) ไม่ใช่ราคาเต็ม</footer>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script>
-// ===== Price table: [Fullprice, GroupA, NCS, UP/RP/WR-tier, QP/AP-tier] =====
+// ===== Price table: [Fullprice, GroupA, NCS, UP/QP-tier, RP-tier] =====
 const PRICE = {
   PG:[180,130,180,180,150],
   SG:[150,150,150,150,150],
@@ -350,7 +374,6 @@ const PRICE = {
   PSC:[90,70,90,90,90]
 };
 const TYPES = Object.keys(PRICE);
-
 // Default percent list embedded from CS_Weida_PercentList_dont_edit.csv (uploaded 2026-07-08)
 let weidaPercent = {
   "10X": "30",
@@ -361,12 +384,9 @@ let weidaPercent = {
   "W053": "30",
   "W054": "30"
 };
-
 const WR_RATE = {"30":0.70, "37":0.63, "45":0.55};
-
 let salesRows = []; // parsed rows from uploaded CSV
 let missingBoxDismissed = false;
-
 function updateMissingBox(rows){
   const missing = findMissingBranches(rows);
   const missingBox = document.getElementById('missingBox');
@@ -378,7 +398,6 @@ function updateMissingBox(rows){
     missingBox.classList.remove('show');
   }
 }
-
 function renderPercentTable(){
   const t = document.getElementById('percentTable');
   let html = '<tr><th>สาขา</th><th>เปอร์เซ็นต์</th></tr>';
@@ -388,17 +407,14 @@ function renderPercentTable(){
   t.innerHTML = html;
 }
 renderPercentTable();
-
 function showStatus(msg, ok){
   const box = document.getElementById('statusBox');
   box.textContent = msg;
   box.className = 'status show ' + (ok ? 'ok' : 'err');
 }
-
 function isNcsPattern(branch){
   return /[A-Z]/i.test(branch) && /\d/.test(branch);
 }
-
 function pointerFor(branch){
   if(branch === "QP") return 8;
   if(branch === "RP") return 4;
@@ -410,7 +426,6 @@ function pointerFor(branch){
   if(isNcsPattern(branch)) return 2;
   return 1;
 }
-
 function parseCsv(text){
   const lines = text.split(/\r?\n/);
   const rows = [];
@@ -428,7 +443,6 @@ function parseCsv(text){
   }
   return rows;
 }
-
 function findMissingBranches(rows){
   const missing = new Set();
   for(const r of rows){
@@ -442,7 +456,6 @@ function findMissingBranches(rows){
   }
   return Array.from(missing);
 }
-
 // counts[type] = {1:GroupA count net, 2:NCS, 3:UP, 4:RP, 5:WR30, 6:WR37, 7:WR45, 8:QP}
 function computeCounts(rows){
   const counts = {};
@@ -456,7 +469,6 @@ function computeCounts(rows){
   }
   return counts;
 }
-
 function calcGroupA(counts){
   let total=0, count=0;
   for(const t of TYPES){ total += PRICE[t][1]*counts[t][1]; count += counts[t][1]; }
@@ -496,7 +508,6 @@ function calcWRMonth(counts){
   }
   return {total, count};
 }
-
 function calcWRRound(counts){
   // Weida Rich Round: tier 37% (AP เท่านั้น ตาม percent list ปัจจุบัน)
   let total=0, count=0;
@@ -507,7 +518,6 @@ function calcWRRound(counts){
   }
   return {total, count};
 }
-
 function formatModifiedTime(file){
   if(!file.lastModified) return '';
   const d = new Date(file.lastModified);
@@ -518,15 +528,12 @@ function formatModifiedTime(file){
   const mi = String(d.getMinutes()).padStart(2,'0');
   return ` (แก้ไขล่าสุด ${dd}/${mm}/${yy} ${hh}:${mi})`;
 }
-
 function fmt(n){
   return n.toLocaleString('en-US', {maximumFractionDigits:2});
 }
-
 function dateKeyToLabel(dd,mm,yy){
   return String(dd).padStart(2,'0') + '/' + String(mm).padStart(2,'0') + '/' + yy;
 }
-
 function getUniqueDatesSorted(rows){
   const map = new Map();
   for(const r of rows){
@@ -535,7 +542,6 @@ function getUniqueDatesSorted(rows){
   }
   return Array.from(map.entries()).sort((a,b)=>b[0]-a[0]); // newest first
 }
-
 function populateDateSelect(rows, selectedKey){
   const sel = document.getElementById('dateSelect');
   const row = document.getElementById('dateSelectRow');
@@ -547,7 +553,6 @@ function populateDateSelect(rows, selectedKey){
   sel.value = String(selectedKey);
   row.style.display = 'block';
 }
-
 function renderResults(rows, selectedKey){
   // find target date: use selectedKey if given & present in rows, else fall back to latest date
   let target = null;
@@ -567,10 +572,8 @@ function renderResults(rows, selectedKey){
     document.getElementById('resultsArea').innerHTML = '<div class="empty-state">ไม่พบข้อมูลวันที่ในไฟล์ CSV — ตรวจสอบรูปแบบไฟล์อีกครั้ง</div>';
     return;
   }
-
   const todayRows = rows.filter(r => r.dd===target.dd && r.mm===target.mm && r.yy===target.yy);
   const counts = computeCounts(todayRows);
-
   const ga = calcGroupA(counts);
   const ncs = calcNCS(counts);
   const up = calcUP(counts);
@@ -578,14 +581,12 @@ function renderResults(rows, selectedKey){
   const rp = calcRP(counts);
   const wrMonth = calcWRMonth(counts);
   const wrRound = calcWRRound(counts);
-
   // CS Summary = Group A + NCS + RP เท่านั้น (ยืนยันจากข้อมูลจริงหลายวัน)
   const csTotal = ga.total + ncs.total + rp.total;
   const csCount = ga.count + ncs.count + rp.count;
   // UP และ QP เป็นตารางแจงแยก ไม่บวกเข้า Grand Total (ยืนยันจากข้อมูลจริง 03-07-26: 3575 ฿ / 24 หน่วย)
   const grandTotal = csTotal + wrMonth.total + wrRound.total;
   const grandCount = csCount + wrMonth.count + wrRound.count;
-
   // 10-day period grouping, reset each period, split by month
   // ใช้ฟังก์ชันคำนวณเดียวกับการ์ดหลัก (calcGroupA/calcNCS/calcRP/calcQP/calcWR) เพื่อความถูกต้องตรงกัน
   // นับเฉพาะวันที่ <= วันที่เลือก (target) — รอบปัจจุบันจะสะสมถึงวันที่เลือกเท่านั้น ไม่รวมวันในอนาคตของไฟล์
@@ -604,7 +605,6 @@ function renderResults(rows, selectedKey){
     if(!periodDayGroups[key].days[r.dd]) periodDayGroups[key].days[r.dd] = [];
     periodDayGroups[key].days[r.dd].push(r);
   }
-
   // คำนวณ Grand Total แยกทีละวันก่อน (ceil ต่อวัน เหมือนระบบต้นทาง) แล้วค่อยรวมเป็น period
   // เพื่อให้ตรงกับผลรวมที่ได้จากการบวกยอดรายวันที่ปัดเศษแล้ว ไม่ใช่ปัดเศษทีเดียวหลังรวมทั้ง period
   const periodMap = {};
@@ -623,14 +623,11 @@ function renderResults(rows, selectedKey){
     }
     periodMap[key] = { total, count, yy: group.yy, mm: group.mm, period: group.period };
   }
-
   const periodKeys = Object.keys(periodMap).sort();
   const dateLabel = dateKeyToLabel(target.dd, target.mm, target.yy);
   const currentPeriod = target.dd<=10?1:(target.dd<=20?2:3);
   const currentPeriodKey = `${target.yy}-${String(target.mm).padStart(2,'0')}-P${currentPeriod}`;
-
   const periodLabels = {1:'วันที่ 1–10', 2:'วันที่ 11–20', 3:'วันที่ 21–30/31'};
-
   let periodHtml = '';
   for(const key of periodKeys){
     const p = periodMap[key];
@@ -644,94 +641,79 @@ function renderResults(rows, selectedKey){
         <div class="p-value">${fmt(p.total)} ฿</div>
       </div>`;
   }
-
   const html = `
     <div class="date-banner">📅 สรุปยอดรายรับประจำวันที่ ${dateLabel}</div>
-
     <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม CS <span class="tag">${csCount} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(csTotal)} ฿</div></div>
       </div>
     </div>
-
     <div class="card" style="margin-bottom: 0.3rem">
       <h2>สาขา RP <span class="tag">${rp.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(rp.total)} ฿</div></div>
       </div>
     </div>
-
     <div class="card" style="opacity:.65;margin-bottom: 0.3rem">
       <h2>สาขา UP <span class="tag">${up.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(up.total)} ฿</div></div>
       </div>
     </div>
-
     <div class="card" style="opacity:.65;margin-bottom: 0.3rem">
       <h2>สาขา QP <span class="tag">${qp.count} รายการ (แจงแยก ไม่รวมยอด)</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(qp.total)} ฿</div></div>
       </div>
     </div>
-
     <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม WR Round (AP) <span class="tag">${wrRound.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(wrRound.total)} ฿</div></div>
       </div>
     </div>
-
     <div class="card" style="margin-bottom: 0.3rem">
       <h2>กลุ่ม WR Month (Weida Rich) <span class="tag">${wrMonth.count} รายการ</span></h2>
       <div class="figures">
         <div class="figure"><div class="value income">${fmt(wrMonth.total)} ฿</div></div>
       </div>
     </div>
-
     <div class="grand-total" style="padding:0.4rem">
       <div class="label">สรุปรวมรายรับวันนี้</div>
       <div class="value">${fmt(grandTotal)} ฿</div>
       <div class="sub">${grandCount} รายการทั้งหมด (CS: ${csCount} + WR Month: ${wrMonth.count} + WR Round: ${wrRound.count})</div>
     </div>
-    
+
     <div class="period-section">
       <h2 class="section-title">ยอดขายรวมแยกทุก 10 วัน</h2>
       ${periodHtml || '<div class="empty-state" style="padding:20px;">ไม่มีข้อมูล</div>'}
     </div>
   `;
-
   document.getElementById('resultsArea').innerHTML = html;
   document.getElementById('saveImageBtn').style.display = 'block';
 }
-
 function showSaveStatus(msg, ok){
   const box = document.getElementById('saveStatusBox');
   box.textContent = msg;
   box.className = 'save-status show ' + (ok ? 'ok' : 'err');
 }
-
 document.getElementById('saveImageBtn').addEventListener('click', function(){
   const btn = this;
   const target = document.getElementById('resultsArea');
-
   if(typeof html2canvas === 'undefined'){
     showSaveStatus('⚠️ โหลดตัวช่วยสร้างรูปภาพไม่สำเร็จ (เช็คอินเทอร์เน็ต หรือลองปุ่ม PDF ด้านล่างแทน)', false);
     document.getElementById('printFallbackBtn').style.display = 'block';
     return;
   }
-
   btn.textContent = '⏳ กำลังสร้างรูปภาพ...';
   btn.disabled = true;
   showSaveStatus('กำลังประมวลผล...', true);
-
   // เพิ่ม padding ชั่วคราวรอบเนื้อหา กันภาพที่ export ออกมาชิดขอบเกินไป
   const originalPadding = target.style.padding;
   const originalBackground = target.style.background;
   target.style.padding = '24px 16px';
   target.style.background = '#f6f4ef';
-
   html2canvas(target, {backgroundColor:'#f6f4ef', scale:2, useCORS:true, logging:false})
     .then(canvas => {
       target.style.padding = originalPadding;
@@ -759,11 +741,9 @@ document.getElementById('saveImageBtn').addEventListener('click', function(){
       btn.disabled = false;
     });
 });
-
 document.getElementById('printFallbackBtn').addEventListener('click', function(){
   window.print();
 });
-
 document.getElementById('csvFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -790,7 +770,6 @@ document.getElementById('csvFile').addEventListener('change', function(e){
   };
   reader.readAsText(file, 'UTF-8');
 });
-
 document.getElementById('percentFile').addEventListener('change', function(e){
   const file = e.target.files[0];
   if(!file) return;
@@ -820,15 +799,62 @@ document.getElementById('percentFile').addEventListener('change', function(e){
   };
   reader.readAsText(file, 'UTF-8');
 });
-
 document.getElementById('missingBoxClose').addEventListener('click', function(){
   missingBoxDismissed = true;
   document.getElementById('missingBox').classList.remove('show');
 });
-
 document.getElementById('dateSelect').addEventListener('change', function(){
   renderResults(salesRows, parseInt(this.value, 10));
 });
+
+// ===== Realtime fetch via Cloudflare Worker proxy =====
+// เดิมไฟล์นี้เคยเรียก api.github.com ตรงๆ ด้วย token ที่ผู้ใช้กรอกเก็บใน localStorage
+// (เพราะ repo ข้อมูล sales-data เป็น private + repo ที่ host ไฟล์นี้เป็น public
+// จึงห้ามฝัง token ตัวจริงไว้ในไฟล์ที่ถูก serve ออกไป)
+// ตอนนี้เปลี่ยนมาเรียก Cloudflare Worker (sales-proxy) แทน — Worker เป็นตัวถือ
+// GitHub token จริงไว้ฝั่งเซิร์ฟเวอร์ (เป็น Secret ชื่อ GH_TOKEN บน Worker) แล้วค่อยไป
+// ดึงไฟล์ CSV เดือนปัจจุบันจาก GitHub มาให้อีกที พร้อมเปิด CORS ให้ทุก origin
+// ผลคือไฟล์ HTML นี้ไม่มี token ใดๆฝังอยู่เลย และเปิดจากเครื่องไหนก็ได้ทันทีโดยไม่ต้องกรอกอะไร
+const WORKER_URL = "https://sales-proxy.weidarich-sale.workers.dev";
+let autoRefreshTimer = null;
+
+function loadFromGithub(showLoadingMsg){
+  if(showLoadingMsg) showStatus('กำลังโหลดข้อมูลล่าสุด...', true);
+  fetch(WORKER_URL, { cache: 'no-store' })
+    .then(function(res){
+      if(res.status === 404) throw new Error('ยังไม่มีไฟล์ CSV เดือนนี้บน GitHub (รอให้เปิด NCS File Check Accountant ที่ร้านอย่างน้อย 1 ครั้งก่อน)');
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.text();
+    })
+    .then(function(text){
+      const rows = parseCsv(text);
+      if(rows.length === 0){
+        showStatus('โหลดข้อมูลสำเร็จ แต่ไม่พบข้อมูลที่อ่านได้ในไฟล์', false);
+        return;
+      }
+      missingBoxDismissed = false;
+      updateMissingBox(rows);
+      salesRows = rows;
+      const now = new Date();
+      document.getElementById('githubLastLoaded').textContent =
+        '🔄 อัปเดตล่าสุด ' + now.toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'});
+      showStatus('โหลดข้อมูลสำเร็จ: ' + rows.length + ' รายการ', true);
+      const dates = getUniqueDatesSorted(rows);
+      const latestKey = dates.length ? dates[0][0] : null;
+      populateDateSelect(rows, latestKey);
+      renderResults(rows, latestKey);
+    })
+    .catch(function(err){
+      document.getElementById('githubLastLoaded').textContent = '⚠️ โหลดล่าสุดไม่สำเร็จ';
+      showStatus('❌ โหลดข้อมูลไม่สำเร็จ: ' + err.message + ' — ลองใช้ปุ่ม "เลือกไฟล์ CSV" ด้านบนแทนชั่วคราว', false);
+    });
+}
+
+document.getElementById('refreshGithubBtn').addEventListener('click', function(){ loadFromGithub(true); });
+
+// ดึงอัตโนมัติตอนเปิดหน้า + รีเฟรชอัตโนมัติทุก 3 นาที (ไม่ต้องกรอก token ใดๆ)
+loadFromGithub(false);
+autoRefreshTimer = setInterval(function(){ loadFromGithub(false); }, 3 * 60 * 1000);
 </script>
 </body>
 </html>
