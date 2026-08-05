@@ -477,9 +477,8 @@ function calcGroupA(counts){
 function calcNCS(counts){
   let total=0, count=0;
   for(const t of TYPES){
-    const c = counts[t][2] + counts[t][3] + counts[t][8];
-    total += PRICE[t][2]*counts[t][2] + PRICE[t][3]*counts[t][3] + PRICE[t][3]*counts[t][8];
-    count += c;
+    total += PRICE[t][2]*counts[t][2];
+    count += counts[t][2];
   }
   return {total, count};
 }
@@ -581,12 +580,12 @@ function renderResults(rows, selectedKey){
   const rp = calcRP(counts);
   const wrMonth = calcWRMonth(counts);
   const wrRound = calcWRRound(counts);
-  // CS Summary = Group A + NCS + RP เท่านั้น (ยืนยันจากข้อมูลจริงหลายวัน)
+  // CS Summary = Group A + NCS + RP เท่านั้น
   const csTotal = ga.total + ncs.total + rp.total;
   const csCount = ga.count + ncs.count + rp.count;
-  // UP และ QP เป็นตารางแจงแยก ไม่บวกเข้า Grand Total (ยืนยันจากข้อมูลจริง 03-07-26: 3575 ฿ / 24 หน่วย)
-  const grandTotal = csTotal + wrMonth.total + wrRound.total;
-  const grandCount = csCount + wrMonth.count + wrRound.count;
+  // UP และ QP แสดงเป็นการ์ดแยก แต่ยังนับรวมเข้า Grand Total ด้วย
+  const grandTotal = csTotal + wrMonth.total + wrRound.total + up.total + qp.total;
+  const grandCount = csCount + wrMonth.count + wrRound.count + up.count + qp.count;
   // 10-day period grouping, reset each period, split by month
   // ใช้ฟังก์ชันคำนวณเดียวกับการ์ดหลัก (calcGroupA/calcNCS/calcRP/calcQP/calcWR) เพื่อความถูกต้องตรงกัน
   // นับเฉพาะวันที่ <= วันที่เลือก (target) — รอบปัจจุบันจะสะสมถึงวันที่เลือกเท่านั้น ไม่รวมวันในอนาคตของไฟล์
@@ -615,11 +614,12 @@ function renderResults(rows, selectedKey){
       const dayRows = group.days[dd];
       const dCounts = computeCounts(dayRows);
       const dGa = calcGroupA(dCounts), dNcs = calcNCS(dCounts), dRp = calcRP(dCounts);
+      const dUp = calcUP(dCounts), dQp = calcQP(dCounts);
       const dWrMonth = calcWRMonth(dCounts), dWrRound = calcWRRound(dCounts);
       const dCsTotal = dGa.total + dNcs.total + dRp.total;
       const dCsCount = dGa.count + dNcs.count + dRp.count;
-      total += dCsTotal + dWrMonth.total + dWrRound.total;
-      count += dCsCount + dWrMonth.count + dWrRound.count;
+      total += dCsTotal + dWrMonth.total + dWrRound.total + dUp.total + dQp.total;
+      count += dCsCount + dWrMonth.count + dWrRound.count + dUp.count + dQp.count;
     }
     periodMap[key] = { total, count, yy: group.yy, mm: group.mm, period: group.period };
   }
@@ -709,7 +709,6 @@ document.getElementById('saveImageBtn').addEventListener('click', function(){
   btn.textContent = '⏳ กำลังสร้างรูปภาพ...';
   btn.disabled = true;
   showSaveStatus('กำลังประมวลผล...', true);
-  // เพิ่ม padding ชั่วคราวรอบเนื้อหา กันภาพที่ export ออกมาชิดขอบเกินไป
   const originalPadding = target.style.padding;
   const originalBackground = target.style.background;
   target.style.padding = '24px 16px';
@@ -808,13 +807,6 @@ document.getElementById('dateSelect').addEventListener('change', function(){
 });
 
 // ===== Realtime fetch via Cloudflare Worker proxy =====
-// เดิมไฟล์นี้เคยเรียก api.github.com ตรงๆ ด้วย token ที่ผู้ใช้กรอกเก็บใน localStorage
-// (เพราะ repo ข้อมูล sales-data เป็น private + repo ที่ host ไฟล์นี้เป็น public
-// จึงห้ามฝัง token ตัวจริงไว้ในไฟล์ที่ถูก serve ออกไป)
-// ตอนนี้เปลี่ยนมาเรียก Cloudflare Worker (sales-proxy) แทน — Worker เป็นตัวถือ
-// GitHub token จริงไว้ฝั่งเซิร์ฟเวอร์ (เป็น Secret ชื่อ GH_TOKEN บน Worker) แล้วค่อยไป
-// ดึงไฟล์ CSV เดือนปัจจุบันจาก GitHub มาให้อีกที พร้อมเปิด CORS ให้ทุก origin
-// ผลคือไฟล์ HTML นี้ไม่มี token ใดๆฝังอยู่เลย และเปิดจากเครื่องไหนก็ได้ทันทีโดยไม่ต้องกรอกอะไร
 const WORKER_URL = "https://sales-proxy.weidarich-sale.workers.dev";
 let autoRefreshTimer = null;
 
@@ -852,7 +844,6 @@ function loadFromGithub(showLoadingMsg){
 
 document.getElementById('refreshGithubBtn').addEventListener('click', function(){ loadFromGithub(true); });
 
-// ดึงอัตโนมัติตอนเปิดหน้า + รีเฟรชอัตโนมัติทุก 3 นาที (ไม่ต้องกรอก token ใดๆ)
 loadFromGithub(false);
 autoRefreshTimer = setInterval(function(){ loadFromGithub(false); }, 3 * 60 * 1000);
 </script>
